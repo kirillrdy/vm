@@ -7,8 +7,8 @@ import (
 	"os/exec"
 )
 
-func networkDevice() string {
-	return "virtio-net,tap0"
+func networkDevice(device string) string {
+	return "virtio-net," + device
 }
 
 func disk() string {
@@ -29,7 +29,7 @@ func numberSlots(slots []string) []string {
 }
 
 func vnc() string {
-	return "fbuf,tcp=0.0.0.0:5900,w=800,h=600,wait"
+	return "fbuf,tcp=0.0.0.0:5900,w=1280,h=720,wait"
 }
 
 func uEFIBoot() string {
@@ -44,7 +44,7 @@ func startVM(vmName string, install bool) {
 	slots := []string{
 		"hostbridge",
 		"lpc",
-		networkDevice(),
+		networkDevice("tap0"),
 		disk(),
 		vnc(),
 		"xhci,tablet",
@@ -62,6 +62,8 @@ func startVM(vmName string, install bool) {
 		memory,
 		"-l",
 		uEFIBoot(),
+		"-l",
+		"com1,stdio",
 		vmName,
 	}...)
 
