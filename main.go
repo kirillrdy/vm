@@ -40,7 +40,7 @@ func uEFIBoot() string {
 func (vm VM) start(iso *string) {
 	//TODO maybe give all cpus ?
 	numberOfCPUs := "8"
-	memory := "4G"
+	memory := "10G"
 
 	slots := []string{
 		"hostbridge",
