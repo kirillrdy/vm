@@ -39,6 +39,7 @@ func vnc(fullScreen bool, shouldWait bool) string {
 	return s
 }
 
+//TODO check dependencies
 func uEFIBoot() string {
 	return "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
 }
