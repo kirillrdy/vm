@@ -41,10 +41,9 @@ func uEFIBoot() string {
 	return "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
 }
 
-func startVM(vmName string, install bool) {
+func (vm VM) start(iso *string) {
 	numberOfCPUs := "4"
 	memory := "4G"
-	iso := "./install.iso"
 
 	slots := []string{
 		"hostbridge",
@@ -55,8 +54,8 @@ func startVM(vmName string, install bool) {
 		"xhci,tablet",
 	}
 
-	if install == true {
-		slots = append(slots, cdRom(iso))
+	if iso != nil {
+		slots = append(slots, cdRom(*iso))
 	}
 
 	args := append(numberSlots(slots), []string{
@@ -69,7 +68,7 @@ func startVM(vmName string, install bool) {
 		uEFIBoot(),
 		"-l",
 		"com1,stdio",
-		vmName,
+		vm.Name,
 	}...)
 
 	cmd := exec.Command("bhyve", args...)
@@ -85,6 +84,23 @@ func startVM(vmName string, install bool) {
 
 }
 
+// VM is vm
+type VM struct {
+	Name string
+}
+
+func (vm VM) diskPath() string {
+	return disksLocation + "/" + vm.Name
+}
+
+// Create for now only creates disk
+func (vm VM) Create() {
+	err := exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 const disksLocation = "/storage/vm"
 
 //TODO run more than one thing
@@ -94,10 +110,20 @@ func main() {
 
 	switch flag.Arg(0) {
 	case "create":
+		vm := VM{Name: flag.Arg(1)}
+		vm.Create()
 	case "list":
 	case "start":
+
 		//TODO load vmm
-		startVM("ubuntu", false)
+		vm := VM{Name: flag.Arg(1)}
+		vm.start(nil)
+
+	case "install":
+		//TODO load vmm
+		vm := VM{Name: flag.Arg(1)}
+		iso := flag.Arg(2)
+		vm.start(&iso)
 	case "":
 		//TODO
 		log.Fatalf("TODO")
