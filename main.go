@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -28,8 +29,12 @@ func numberSlots(slots []string) []string {
 	return numberedSlots
 }
 
-func vnc() string {
-	return "fbuf,tcp=0.0.0.0:5900,w=1280,h=720,wait"
+func vnc(wait bool) string {
+	s := "fbuf,tcp=0.0.0.0:5900,w=1280,h=720"
+	if wait == true {
+		s += ",wait"
+	}
+	return s
 }
 
 func uEFIBoot() string {
@@ -46,7 +51,7 @@ func startVM(vmName string, install bool) {
 		"lpc",
 		networkDevice("tap0"),
 		disk(),
-		vnc(),
+		vnc(false),
 		"xhci,tablet",
 	}
 
@@ -75,11 +80,29 @@ func startVM(vmName string, install bool) {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 }
 
+const disksLocation = "/storage/vm"
+
+//TODO run more than one thing
 func main() {
-	startVM("ubuntu", false)
+
+	flag.Parse()
+
+	switch flag.Arg(0) {
+	case "create":
+	case "list":
+	case "start":
+		//TODO load vmm
+		startVM("ubuntu", false)
+	case "":
+		//TODO
+		log.Fatalf("TODO")
+	default:
+		log.Fatalf("Dont know %s", flag.Arg(0))
+	}
+
 }
