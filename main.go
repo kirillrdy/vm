@@ -12,10 +12,6 @@ func networkDevice(device string) string {
 	return "virtio-net," + device
 }
 
-func disk() string {
-	return "virtio-blk,./disk.img"
-}
-
 func cdRom(iso string) string {
 	return "ahci-cd," + iso
 }
@@ -42,14 +38,15 @@ func uEFIBoot() string {
 }
 
 func (vm VM) start(iso *string) {
-	numberOfCPUs := "4"
+	//TODO maybe give all cpus ?
+	numberOfCPUs := "8"
 	memory := "4G"
 
 	slots := []string{
 		"hostbridge",
 		"lpc",
 		networkDevice("tap0"),
-		disk(),
+		vm.diskSlot(),
 		vnc(false),
 		"xhci,tablet",
 	}
@@ -99,6 +96,10 @@ func (vm VM) Create() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (vm VM) diskSlot() string {
+	return "virtio-blk," + vm.diskPath()
 }
 
 const disksLocation = "/storage/vm"
