@@ -25,9 +25,9 @@ func numberSlots(slots []string) []string {
 	return numberedSlots
 }
 
-func vnc(wait bool) string {
+func vnc(shouldWait bool) string {
 	s := "fbuf,tcp=0.0.0.0:5900,w=1280,h=720"
-	if wait == true {
+	if shouldWait {
 		s += ",wait"
 	}
 	return s
