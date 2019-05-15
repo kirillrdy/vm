@@ -25,8 +25,14 @@ func numberSlots(slots []string) []string {
 	return numberedSlots
 }
 
-func vnc(shouldWait bool) string {
-	s := "fbuf,tcp=0.0.0.0:5900,w=1280,h=720"
+func vnc(fullScreen bool, shouldWait bool) string {
+	s := "fbuf,tcp=0.0.0.0:5900"
+	if fullScreen {
+		s += ",w=1920,h=1080"
+	} else {
+		s += ",w=1280,h=720"
+	}
+
 	if shouldWait {
 		s += ",wait"
 	}
@@ -37,7 +43,7 @@ func uEFIBoot() string {
 	return "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
 }
 
-func (vm VM) start(iso *string) {
+func (vm VM) start(fullScreen bool, iso *string) {
 	//TODO maybe give all cpus ?
 	numberOfCPUs := "8"
 	memory := "10G"
@@ -47,7 +53,7 @@ func (vm VM) start(iso *string) {
 		"lpc",
 		networkDevice("tap0"),
 		vm.diskSlot(),
-		vnc(false),
+		vnc(fullScreen, false),
 		"xhci,tablet",
 	}
 
@@ -107,6 +113,7 @@ const disksLocation = "/storage/vm"
 //TODO run more than one thing
 func main() {
 
+	fullScreen := flag.Bool("f", false, "Fullscreen")
 	flag.Parse()
 
 	switch flag.Arg(0) {
@@ -118,13 +125,13 @@ func main() {
 
 		//TODO load vmm
 		vm := VM{Name: flag.Arg(1)}
-		vm.start(nil)
+		vm.start(*fullScreen, nil)
 
 	case "install":
 		//TODO load vmm
 		vm := VM{Name: flag.Arg(1)}
 		iso := flag.Arg(2)
-		vm.start(&iso)
+		vm.start(*fullScreen, &iso)
 	case "":
 		//TODO
 		log.Fatalf("TODO")
