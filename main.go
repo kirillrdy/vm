@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 )
 
@@ -77,15 +76,22 @@ func (vm VM) start(fullScreen bool, iso *string) {
 
 	cmd := exec.Command("bhyve", args...)
 
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
+	//cmd.Stdin = os.Stdin
+	//cmd.Stderr = os.Stderr
+	//cmd.Stdout = os.Stdout
 
-	err := cmd.Run()
+	err := cmd.Start()
 	if err != nil {
 		log.Panic(err)
 	}
 
+}
+
+func (vm VM) stop() {
+	err := exec.Command("bhyvectl", "--vm="+vm.Name, "--destroy").Run()
+	if err != nil {
+		log.Print("Failed to stop things")
+	}
 }
 
 // VM is vm
@@ -114,7 +120,7 @@ const disksLocation = "/storage/vm"
 //TODO run more than one thing
 func main() {
 
-	fullScreen := flag.Bool("f", false, "Fullscreen")
+	fullScreen := flag.Bool("f", true, "Fullscreen")
 	flag.Parse()
 
 	switch flag.Arg(0) {
@@ -133,6 +139,9 @@ func main() {
 		vm := VM{Name: flag.Arg(1)}
 		iso := flag.Arg(2)
 		vm.start(*fullScreen, &iso)
+	case "stop":
+		vm := VM{Name: flag.Arg(1)}
+		vm.stop()
 	case "":
 		//TODO
 		log.Fatalf("TODO")
