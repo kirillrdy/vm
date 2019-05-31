@@ -1,11 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 )
+
+func handleError(err error) {
+	if err != nil {
+		log.Panic(err)
+	}
+}
 
 func networkDevice(device string) string {
 	return "virtio-net," + device
@@ -81,17 +89,18 @@ func (vm VM) start(fullScreen bool, iso *string) {
 	//cmd.Stdout = os.Stdout
 
 	err := cmd.Start()
-	if err != nil {
-		log.Panic(err)
-	}
+	handleError(err)
 
 }
 
 func (vm VM) stop() {
 	err := exec.Command("bhyvectl", "--vm="+vm.Name, "--destroy").Run()
-	if err != nil {
-		log.Print("Failed to stop things")
-	}
+	handleError(err)
+}
+
+// Configuration will contain persisted on disk configuration
+type Configuration struct {
+	DiskPath string
 }
 
 // VM is vm
@@ -100,15 +109,27 @@ type VM struct {
 }
 
 func (vm VM) diskPath() string {
-	return disksLocation + "/" + vm.Name
+	return disksLocation + "/" + vm.Name + ".disk"
+}
+
+func (vm VM) configurationPath() string {
+	return disksLocation + "/" + vm.Name + ".json"
 }
 
 // Create for now only creates disk
 func (vm VM) Create() {
 	err := exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
+	configuration := Configuration{DiskPath: vm.diskPath()}
+	file, err := os.Create(vm.configurationPath())
+	handleError(err)
+	defer file.Close()
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(&configuration)
+	handleError(err)
+
 }
 
 func (vm VM) diskSlot() string {
