@@ -47,7 +47,10 @@ func vnc(fullScreen bool, shouldWait bool) string {
 }
 
 //TODO check dependencies
-func uEFIBoot() string {
+func uEFIBoot(legacy bool) string {
+	if legacy {
+		return "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI_CSM.fd"
+	}
 	return "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
 }
 
@@ -76,9 +79,9 @@ func (vm VM) start(fullScreen bool, iso *string) {
 		"-m",
 		memory,
 		"-l",
-		uEFIBoot(),
+		uEFIBoot(false),
 		"-l",
-		"com1,stdio",
+		"com1,/dev/nmdm0A", //TODO 0A is hardcoded
 		vm.Name,
 	}...)
 
