@@ -108,24 +108,32 @@ type VM struct {
 	Name string
 }
 
+const zfsPool string = "storage/vm"
+
 func (vm VM) diskPath() string {
-	return disksLocation + "/" + vm.Name + ".disk"
+	return disksLocation + "/" + vm.Name + "/disk"
 }
 
 func (vm VM) configurationPath() string {
-	return disksLocation + "/" + vm.Name + ".json"
+	return disksLocation + "/" + vm.Name + "/configuration.json"
 }
 
 // Create for now only creates disk
 func (vm VM) Create() {
-	err := exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
-	if err != nil {
-		log.Panic(err)
-	}
+
+	err := exec.Command("zfs", "create", zfsPool+"/"+vm.Name).Run()
+	handleError(err)
+
+	err = exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
+	handleError(err)
+
 	configuration := Configuration{DiskPath: vm.diskPath()}
 	file, err := os.Create(vm.configurationPath())
 	handleError(err)
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		handleError(err)
+	}()
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(&configuration)
 	handleError(err)
