@@ -152,6 +152,11 @@ func (vm VM) diskSlot() string {
 	return "virtio-blk," + vm.diskPath()
 }
 
+func (vm VM) cloneFrom(fromSnapshot string) {
+	err := exec.Command("zfs", "clone", zfsPool+"/"+fromSnapshot, vm.zfsDataset()).Run()
+	handleError(err)
+}
+
 func (vm VM) snapshot() {
 	now := time.Now()
 	snapshotTime := fmt.Sprintf("%d%02d%02d-%02d%02d%02d", now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
@@ -194,6 +199,9 @@ func main() {
 		vm := VM{Name: flag.Arg(1)}
 		vm.snapshot()
 
+	case "clone":
+		vm := VM{Name: flag.Arg(2)}
+		vm.cloneFrom(flag.Arg(1))
 	case "":
 		//TODO
 		log.Fatalf("TODO")
