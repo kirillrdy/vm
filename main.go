@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"time"
 )
 
 func handleError(err error) {
@@ -121,10 +122,14 @@ func (vm VM) configurationPath() string {
 	return disksLocation + "/" + vm.Name + "/configuration.json"
 }
 
+func (vm VM) zfsDataset() string {
+	return zfsPool + "/" + vm.Name
+}
+
 // Create for now only creates disk
 func (vm VM) Create() {
 
-	err := exec.Command("zfs", "create", zfsPool+"/"+vm.Name).Run()
+	err := exec.Command("zfs", "create", vm.zfsDataset()).Run()
 	handleError(err)
 
 	err = exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
@@ -145,6 +150,16 @@ func (vm VM) Create() {
 
 func (vm VM) diskSlot() string {
 	return "virtio-blk," + vm.diskPath()
+}
+
+func (vm VM) snapshot() {
+	now := time.Now()
+	snapshotTime := fmt.Sprintf("%d%02d%02d-%02d%02d%02d", now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
+	snapshotName := vm.zfsDataset() + "@" + snapshotTime
+
+	log.Printf("Creating snapshot with name %s", snapshotName)
+	err := exec.Command("zfs", "snap", snapshotName).Run()
+	handleError(err)
 }
 
 const disksLocation = "/storage/vm"
@@ -174,6 +189,11 @@ func main() {
 	case "stop":
 		vm := VM{Name: flag.Arg(1)}
 		vm.stop()
+
+	case "snap", "snapshot":
+		vm := VM{Name: flag.Arg(1)}
+		vm.snapshot()
+
 	case "":
 		//TODO
 		log.Fatalf("TODO")
