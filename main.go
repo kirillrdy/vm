@@ -214,7 +214,7 @@ func list() {
 	handleError(err)
 	lines := strings.Split(string(output), "\n")
 
-	fmt.Println("Name\tRunning\tUsed\tReferenced\t\tVNC Port")
+	fmt.Println("Name\tRunning\tUsed\tRefer\tVNC Port")
 
 	//TODO panic
 	for _, line := range lines[1 : len(lines)-1] {
@@ -224,7 +224,7 @@ func list() {
 		referenced := strings.Split(line, "\t")[3]
 		vmName := strings.Replace(datasetName, zfsPool+"/", "", 1)
 		vm := VM{Name: vmName, Referenced: referenced, Used: used}
-		fmt.Printf("%s\t%t\t%s\t%s\t\t%d\n", vmName, vm.isRunning(), vm.Used, vm.Referenced, vm.configuration().VNCPort)
+		fmt.Printf("%s\t%t\t%s\t%s\t%d\n", vmName, vm.isRunning(), vm.Used, vm.Referenced, vm.configuration().VNCPort)
 	}
 
 }
