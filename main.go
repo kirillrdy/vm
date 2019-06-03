@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -103,14 +104,17 @@ func (vm VM) stop() {
 	handleError(err)
 }
 
-// Configuration will contain persisted on disk configuration
+// Configuration will contain persisted on disk configuratior
 type Configuration struct {
+	VNCPort  int
 	DiskPath string
 }
 
 // VM is vm
 type VM struct {
-	Name string
+	Name       string
+	Referenced string
+	Used       string
 }
 
 const zfsPool string = "storage/vm"
@@ -123,11 +127,16 @@ func (vm VM) configurationPath() string {
 	return disksLocation + "/" + vm.Name + "/configuration.json"
 }
 
+func (vm VM) isRunning() bool {
+	_, err := os.Lstat("/dev/vmm/" + vm.Name)
+	return err == nil
+}
+
 func (vm VM) zfsDataset() string {
 	return zfsPool + "/" + vm.Name
 }
 
-// Create for now only creates disk
+// Create creates vm and all related things such as zfs datasets etc
 func (vm VM) Create() {
 
 	err := exec.Command("zfs", "create", vm.zfsDataset()).Run()
@@ -136,7 +145,7 @@ func (vm VM) Create() {
 	err = exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
 	handleError(err)
 
-	configuration := Configuration{DiskPath: vm.diskPath()}
+	configuration := Configuration{DiskPath: vm.diskPath(), VNCPort: nextAvailibleVNCPort()}
 	file, err := os.Create(vm.configurationPath())
 	handleError(err)
 	defer func() {
@@ -149,8 +158,20 @@ func (vm VM) Create() {
 
 }
 
+func (vm VM) configuration() Configuration {
+	file, err := os.Open(vm.configurationPath())
+	handleError(err)
+	decoder := json.NewDecoder(file)
+	var configuration Configuration
+	err = decoder.Decode(&configuration)
+	handleError(err)
+	return configuration
+}
+
 func (vm VM) diskSlot() string {
-	return "virtio-blk," + vm.diskPath()
+	//TODO figure out which one is better
+	//return "virtio-blk," + vm.diskPath()
+	return "ahci-hd," + vm.diskPath()
 }
 
 func (vm VM) cloneFrom(fromSnapshot string) {
@@ -170,17 +191,40 @@ func (vm VM) snapshot() {
 
 const disksLocation = "/storage/vm"
 
+func nextAvailibleVNCPort() int {
+	start := 5900
+
+	for i := start; i < start+100; i++ {
+		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", i))
+
+		if err == nil {
+			listener.Close()
+			return i
+		} else {
+			log.Print(err)
+		}
+
+	}
+	log.Panic("Hmm ran out of ports ?")
+	return 0
+}
+
 func list() {
 	output, err := exec.Command("zfs", "list", "-r", "-H", zfsPool).Output()
 	handleError(err)
 	lines := strings.Split(string(output), "\n")
 
+	fmt.Println("Name\tRunning\tUsed\tReferenced\t\tVNC Port")
+
 	//TODO panic
 	for _, line := range lines[1 : len(lines)-1] {
 		//TODO store ref and usage
 		datasetName := strings.Split(line, "\t")[0]
+		used := strings.Split(line, "\t")[1]
+		referenced := strings.Split(line, "\t")[3]
 		vmName := strings.Replace(datasetName, zfsPool+"/", "", 1)
-		fmt.Println(vmName)
+		vm := VM{Name: vmName, Referenced: referenced, Used: used}
+		fmt.Printf("%s\t%t\t%s\t%s\t\t%d\n", vmName, vm.isRunning(), vm.Used, vm.Referenced, vm.configuration().VNCPort)
 	}
 
 }
