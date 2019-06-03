@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -169,6 +170,21 @@ func (vm VM) snapshot() {
 
 const disksLocation = "/storage/vm"
 
+func list() {
+	output, err := exec.Command("zfs", "list", "-r", "-H", zfsPool).Output()
+	handleError(err)
+	lines := strings.Split(string(output), "\n")
+
+	//TODO panic
+	for _, line := range lines[1 : len(lines)-1] {
+		//TODO store ref and usage
+		datasetName := strings.Split(line, "\t")[0]
+		vmName := strings.Replace(datasetName, zfsPool+"/", "", 1)
+		fmt.Println(vmName)
+	}
+
+}
+
 //TODO run more than one thing
 func main() {
 
@@ -179,9 +195,7 @@ func main() {
 	case "create":
 		vm := VM{Name: flag.Arg(1)}
 		vm.Create()
-	case "list":
 	case "start":
-
 		//TODO load vmm
 		vm := VM{Name: flag.Arg(1)}
 		vm.start(*fullScreen, nil)
@@ -202,6 +216,8 @@ func main() {
 	case "clone":
 		vm := VM{Name: flag.Arg(2)}
 		vm.cloneFrom(flag.Arg(1))
+	case "list":
+		list()
 	case "":
 		//TODO
 		log.Fatalf("TODO")
