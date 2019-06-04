@@ -106,8 +106,7 @@ func (vm VM) stop() {
 
 // Configuration will contain persisted on disk configuratior
 type Configuration struct {
-	VNCPort  int
-	DiskPath string
+	VNCPort int
 }
 
 // VM is vm
@@ -145,17 +144,8 @@ func (vm VM) Create() {
 	err = exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
 	handleError(err)
 
-	configuration := Configuration{DiskPath: vm.diskPath(), VNCPort: nextAvailibleVNCPort()}
-	file, err := os.Create(vm.configurationPath())
-	handleError(err)
-	defer func() {
-		err := file.Close()
-		handleError(err)
-	}()
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(&configuration)
-	handleError(err)
-
+	configuration := Configuration{VNCPort: nextAvailibleVNCPort()}
+	vm.writeConfiguration(configuration)
 }
 
 func (vm VM) configuration() Configuration {
@@ -166,6 +156,18 @@ func (vm VM) configuration() Configuration {
 	err = decoder.Decode(&configuration)
 	handleError(err)
 	return configuration
+}
+
+func (vm VM) writeConfiguration(configuration Configuration) {
+	file, err := os.Create(vm.configurationPath())
+	handleError(err)
+	defer func() {
+		err := file.Close()
+		handleError(err)
+	}()
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(&configuration)
+	handleError(err)
 }
 
 func (vm VM) diskSlot() string {
@@ -200,9 +202,8 @@ func nextAvailibleVNCPort() int {
 		if err == nil {
 			listener.Close()
 			return i
-		} else {
-			log.Print(err)
 		}
+		log.Print(err)
 
 	}
 	log.Panic("Hmm ran out of ports ?")
