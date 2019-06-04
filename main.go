@@ -35,8 +35,14 @@ func numberSlots(slots []string) []string {
 	return numberedSlots
 }
 
-func vnc(fullScreen bool, shouldWait bool) string {
-	s := "fbuf,tcp=0.0.0.0:5900"
+func (vm VM) storeVNCPort(port int) {
+	config := vm.configuration()
+	config.VNCPort = port
+	vm.writeConfiguration(config)
+}
+
+func vnc(port int, fullScreen bool, shouldWait bool) string {
+	s := fmt.Sprintf("fbuf,tcp=0.0.0.0:%d", port)
 	if fullScreen {
 		s += ",w=1920,h=1080"
 	} else {
@@ -62,12 +68,15 @@ func (vm VM) start(fullScreen bool, iso *string) {
 	numberOfCPUs := "8"
 	memory := "10G"
 
+	vncPort := nextAvailibleVNCPort()
+	vm.storeVNCPort(vncPort)
+
 	slots := []string{
 		"hostbridge",
 		"lpc",
 		networkDevice("tap0"),
 		vm.diskSlot(),
-		vnc(fullScreen, false),
+		vnc(vncPort, fullScreen, false),
 		"xhci,tablet",
 	}
 
