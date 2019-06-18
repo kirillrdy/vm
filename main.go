@@ -190,9 +190,13 @@ func (vm VM) cloneFrom(fromSnapshot string) {
 	handleError(err)
 }
 
-func (vm VM) snapshot() {
+func (vm VM) snapshot(name string) {
 	now := time.Now()
 	snapshotTime := fmt.Sprintf("%d%02d%02d-%02d%02d%02d", now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
+
+	if name != "" {
+		snapshotTime = name
+	}
 	snapshotName := vm.zfsDataset() + "@" + snapshotTime
 
 	log.Printf("Creating snapshot with name %s", snapshotName)
@@ -265,7 +269,8 @@ func main() {
 
 	case "snap", "snapshot":
 		vm := VM{Name: flag.Arg(1)}
-		vm.snapshot()
+		snapshotName := flag.Arg(2)
+		vm.snapshot(snapshotName)
 
 	case "clone":
 		vm := VM{Name: flag.Arg(2)}
