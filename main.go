@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-const disksLocation = "/zroot/vm"
-const zfsPool string = "zroot/vm"
+const disksLocation = "/stprage/vm"
+const zfsPool string = "storage/sm"
 
 func handleError(err error) {
 	if err != nil {
@@ -247,24 +247,24 @@ func list() {
 //TODO run more than one thing
 func main() {
 
-	//Only do if needed
-	err := exec.Command("kldload", "-n", "vmm").Run()
-	handleError(err)
-
-	err = exec.Command("kldload", "-n", "nmdm").Run()
-	handleError(err)
-
-	//Tap 0 is sub optimal
-	exec.Command("ifconfig", "tap0", "create").Run()
-	//handleError(err)
-	exec.Command("ifconfig", "tap0", "up").Run()
-	//handleError(err)
-	exec.Command("ifconfig", "bridge0", "create").Run()
-	//handleError(err)
-	exec.Command("ifconfig", "bridge0", "addm", "wlan0", "addm", "tap0").Run()
-	//handleError(err)
-	exec.Command("ifconfig", "bridge0", "up").Run()
-	//handleError(err)
+	//	//Only do if needed
+	//	err := exec.Command("kldload", "-n", "vmm").Run()
+	//	handleError(err)
+	//
+	//	err = exec.Command("kldload", "-n", "nmdm").Run()
+	//	handleError(err)
+	//
+	//	//Tap 0 is sub optimal
+	//	exec.Command("ifconfig", "tap0", "create").Run()
+	//	//handleError(err)
+	//	exec.Command("ifconfig", "tap0", "up").Run()
+	//	//handleError(err)
+	//	exec.Command("ifconfig", "bridge0", "create").Run()
+	//	//handleError(err)
+	//	exec.Command("ifconfig", "bridge0", "addm", "wlan0", "addm", "tap0").Run()
+	//	//handleError(err)
+	//	exec.Command("ifconfig", "bridge0", "up").Run()
+	//	//handleError(err)
 
 	fullScreen := flag.Bool("f", true, "Fullscreen")
 	flag.Parse()
