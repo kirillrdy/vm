@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+const disksLocation = "/zroot/vm"
+const zfsPool string = "zroot/vm"
+
 func handleError(err error) {
 	if err != nil {
 		log.Panic(err)
@@ -125,8 +128,6 @@ type VM struct {
 	Used       string
 }
 
-const zfsPool string = "storage/vm"
-
 func (vm VM) diskPath() string {
 	return disksLocation + "/" + vm.Name + "/disk"
 }
@@ -204,8 +205,6 @@ func (vm VM) snapshot(name string) {
 	handleError(err)
 }
 
-const disksLocation = "/storage/vm"
-
 func nextAvailibleVNCPort() int {
 	start := 5900
 
@@ -245,6 +244,25 @@ func list() {
 
 //TODO run more than one thing
 func main() {
+
+	//Only do if needed
+	err := exec.Command("kldload", "-n", "vmm").Run()
+	handleError(err)
+
+	err = exec.Command("kldload", "-n", "nmdm").Run()
+	handleError(err)
+
+	//Tap 0 is sub optimal
+	exec.Command("ifconfig", "tap0", "create").Run()
+	//handleError(err)
+	exec.Command("ifconfig", "tap0", "up").Run()
+	//handleError(err)
+	exec.Command("ifconfig", "bridge0", "create").Run()
+	//handleError(err)
+	exec.Command("ifconfig", "bridge0", "addm", "wlan0", "addm", "tap0").Run()
+	//handleError(err)
+	exec.Command("ifconfig", "bridge0", "up").Run()
+	//handleError(err)
 
 	fullScreen := flag.Bool("f", true, "Fullscreen")
 	flag.Parse()
