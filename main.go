@@ -8,6 +8,8 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -68,7 +70,7 @@ func uEFIBoot(legacy bool) string {
 
 func (vm VM) start(fullScreen bool, iso *string) {
 	//TODO maybe give all cpus ?
-	numberOfCPUs := "8"
+	numberOfCPUs := strconv.Itoa(runtime.NumCPU())
 	memory := "10G"
 
 	vncPort := nextAvailibleVNCPort()
