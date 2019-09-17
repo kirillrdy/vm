@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const disksLocation = "/stprage/vm"
+const disksLocation = "/storage/vm"
 const zfsPool string = "storage/sm"
 
 func handleError(err error) {
