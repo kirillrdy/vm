@@ -15,7 +15,7 @@ import (
 )
 
 const disksLocation = "/storage/vm"
-const zfsPool string = "storage/sm"
+const zfsPool string = "storage/vm"
 
 func handleError(err error) {
 	if err != nil {
