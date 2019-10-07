@@ -119,19 +119,18 @@ func (vm VM) Start(fullScreen bool, iso *string) {
 	//	cmd.Stderr = os.Stderr
 	//	cmd.Stdout = os.Stdout
 
-	//	//Tap 0 is sub optimal
-	//	exec.Command("ifconfig", "tap0", "create").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "tap0", "up").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "create").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "addm", "wlan0", "addm", "tap0").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "up").Run()
-	//	//handleError(err)
+	err := exec.Command("ifconfig", vm.tapDevice(), "create").Run()
+	LogError(err, "tap create")
+	err = exec.Command("ifconfig", vm.tapDevice(), "up").Run()
+	LogError(err, "tap up")
+	err = exec.Command("ifconfig", "bridge0", "create").Run()
+	LogError(err, "bridge create")
+	err = exec.Command("ifconfig", "bridge0", "addm", vm.tapDevice()).Run()
+	LogError(err, "bridge add")
+	err = exec.Command("ifconfig", "bridge0", "up").Run()
+	LogError(err, "bridge up")
 
-	err := cmd.Start()
+	err = cmd.Start()
 	Crash(err)
 
 	//TODO localhost
