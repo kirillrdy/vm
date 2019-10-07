@@ -162,9 +162,11 @@ func (vm VM) Create() {
 	err := exec.Command("zfs", "create", vm.zfsDataset()).Run()
 	handleError(err)
 
+	//TODO try non file based storage
 	err = exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
 	handleError(err)
 
+	// Or is better to have this dynamic ? Maybe better dynamic
 	configuration := Configuration{VNCPort: nextAvailibleVNCPort()}
 	vm.writeConfiguration(configuration)
 }
