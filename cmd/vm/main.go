@@ -17,17 +17,6 @@ func main() {
 	err = exec.Command("kldload", "-n", "nmdm").Run()
 	vm.LogError(err, "kldload nmdm")
 	//
-	//	//Tap 0 is sub optimal
-	//	exec.Command("ifconfig", "tap0", "create").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "tap0", "up").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "create").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "addm", "wlan0", "addm", "tap0").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "up").Run()
-	//	//handleError(err)
 
 	fullScreen := flag.Bool("f", true, "Fullscreen")
 	flag.Parse()

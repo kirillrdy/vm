@@ -60,6 +60,13 @@ func vnc(port int, fullScreen bool, shouldWait bool) string {
 	return s
 }
 
+func (vm VM) tapDevice() string {
+	return fmt.Sprintf("tap%d", vm.index)
+}
+func (vm VM) serialDevice() string {
+	return fmt.Sprintf("com1,/dev/nmdm%dA", vm.index)
+}
+
 //TODO check dependencies
 func uEFIBoot(legacy bool) string {
 	if legacy {
@@ -78,7 +85,7 @@ func (vm VM) Start(fullScreen bool, iso *string) {
 	slots := []string{
 		"hostbridge",
 		//"lpc",
-		networkDevice("tap0"),
+		networkDevice(vm.tapDevice()),
 		vm.diskSlot(),
 		vnc(vm.VNCPort(), fullScreen, false),
 		"xhci,tablet",
@@ -99,7 +106,7 @@ func (vm VM) Start(fullScreen bool, iso *string) {
 		"-l",
 		uEFIBoot(false),
 		"-l",
-		"com1,/dev/nmdm0A", //TODO 0A is hardcoded
+		vm.serialDevice(),
 		vm.Name,
 	}...)
 
@@ -107,9 +114,22 @@ func (vm VM) Start(fullScreen bool, iso *string) {
 
 	cmd := exec.Command("bhyve", args...)
 
+	//TODO add some sort of debug of verbose
 	//	cmd.Stdin = os.Stdin
 	//	cmd.Stderr = os.Stderr
 	//	cmd.Stdout = os.Stdout
+
+	//	//Tap 0 is sub optimal
+	//	exec.Command("ifconfig", "tap0", "create").Run()
+	//	//handleError(err)
+	//	exec.Command("ifconfig", "tap0", "up").Run()
+	//	//handleError(err)
+	//	exec.Command("ifconfig", "bridge0", "create").Run()
+	//	//handleError(err)
+	//	exec.Command("ifconfig", "bridge0", "addm", "wlan0", "addm", "tap0").Run()
+	//	//handleError(err)
+	//	exec.Command("ifconfig", "bridge0", "up").Run()
+	//	//handleError(err)
 
 	err := cmd.Start()
 	Crash(err)
