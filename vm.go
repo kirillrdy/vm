@@ -3,9 +3,9 @@ package vm
 import (
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -189,28 +189,11 @@ func (vm VM) Snapshot(name string) {
 	handleError(err)
 }
 
-func nextAvailibleVNCPort() int {
-	start := 5900
-
-	for i := start; i < start+100; i++ {
-		listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", i))
-
-		if err == nil {
-			err = listener.Close()
-			crash(err)
-			return i
-		}
-		log.Print(err)
-
-	}
-	log.Panic("Hmm ran out of ports ?")
-	return 0
-}
-
 // New returns new VM stract ready for usage
 func New(name string) VM {
-	//TODO guess index
-	return VM{Name: name, index: 0}
+	entries, err := filepath.Glob("/dev/vmm/*")
+	crash(err)
+	return VM{Name: name, index: len(entries)}
 }
 
 // List lists all vms and their status
