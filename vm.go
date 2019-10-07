@@ -1,8 +1,7 @@
-package main
+package vm
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -72,7 +71,7 @@ func uEFIBoot(legacy bool) string {
 	return "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
 }
 
-func (vm VM) start(fullScreen bool, iso *string) {
+func (vm VM) Start(fullScreen bool, iso *string) {
 	numberOfCPUs := strconv.Itoa(runtime.NumCPU())
 	memory := "10G"
 
@@ -120,7 +119,8 @@ func (vm VM) start(fullScreen bool, iso *string) {
 
 }
 
-func (vm VM) stop() {
+//Stop stops vm
+func (vm VM) Stop() {
 	out, err := exec.Command("bhyvectl", "--vm="+vm.Name, "--destroy").Output()
 	if err != nil {
 		log.Print(string(out))
@@ -137,6 +137,7 @@ type VM struct {
 	Name       string
 	Referenced string
 	Used       string
+	index      int // this is to figure out all things like ports etc
 }
 
 func (vm VM) diskPath() string {
@@ -199,12 +200,12 @@ func (vm VM) diskSlot() string {
 	return "ahci-hd," + vm.diskPath()
 }
 
-func (vm VM) cloneFrom(fromSnapshot string) {
+func (vm VM) CloneFrom(fromSnapshot string) {
 	err := exec.Command("zfs", "clone", zfsPool+"/"+fromSnapshot, vm.zfsDataset()).Run()
 	handleError(err)
 }
 
-func (vm VM) snapshot(name string) {
+func (vm VM) Snapshot(name string) {
 	now := time.Now()
 	snapshotTime := fmt.Sprintf("%d%02d%02d-%02d%02d%02d", now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
 
@@ -236,7 +237,13 @@ func nextAvailibleVNCPort() int {
 	return 0
 }
 
-func list() {
+// New returns new VM stract ready for usage
+func New(name string) VM {
+	//TODO guess index
+	return VM{Name: name, index: 0}
+}
+
+func List() {
 	output, err := exec.Command("zfs", "list", "-r", "-H", zfsPool).Output()
 	handleError(err)
 	lines := strings.Split(string(output), "\n")
@@ -252,68 +259,6 @@ func list() {
 		vmName := strings.Replace(datasetName, zfsPool+"/", "", 1)
 		vm := VM{Name: vmName, Referenced: referenced, Used: used}
 		fmt.Printf("%s\t%t\t%s\t%s\t%d\n", vmName, vm.isRunning(), vm.Used, vm.Referenced, vm.configuration().VNCPort)
-	}
-
-}
-
-//TODO run more than one thing
-func main() {
-
-	//	//Only do if needed
-	//	err := exec.Command("kldload", "-n", "vmm").Run()
-	//	handleError(err)
-	//
-	//	err = exec.Command("kldload", "-n", "nmdm").Run()
-	//	handleError(err)
-	//
-	//	//Tap 0 is sub optimal
-	//	exec.Command("ifconfig", "tap0", "create").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "tap0", "up").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "create").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "addm", "wlan0", "addm", "tap0").Run()
-	//	//handleError(err)
-	//	exec.Command("ifconfig", "bridge0", "up").Run()
-	//	//handleError(err)
-
-	fullScreen := flag.Bool("f", true, "Fullscreen")
-	flag.Parse()
-
-	switch flag.Arg(0) {
-	case "create":
-		vm := VM{Name: flag.Arg(1)}
-		vm.Create()
-	case "start":
-		//TODO load vmm
-		vm := VM{Name: flag.Arg(1)}
-		vm.start(*fullScreen, nil)
-
-	case "install":
-		//TODO load vmm
-		vm := VM{Name: flag.Arg(1)}
-		iso := flag.Arg(2)
-		vm.start(*fullScreen, &iso)
-	case "stop":
-		vm := VM{Name: flag.Arg(1)}
-		vm.stop()
-
-	case "snap", "snapshot":
-		vm := VM{Name: flag.Arg(1)}
-		snapshotName := flag.Arg(2)
-		vm.snapshot(snapshotName)
-
-	case "clone":
-		vm := VM{Name: flag.Arg(2)}
-		vm.cloneFrom(flag.Arg(1))
-	case "list":
-		list()
-	case "":
-		//TODO
-		log.Fatalf("TODO")
-	default:
-		log.Fatalf("Dont know %s", flag.Arg(0))
 	}
 
 }
