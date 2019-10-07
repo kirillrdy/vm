@@ -4,17 +4,18 @@ import (
 	"flag"
 	"github.com/kirillrdy/vm"
 	"log"
+	"os/exec"
 )
 
 //TODO run more than one thing
 func main() {
 
-	//	//Only do if needed
-	//	err := exec.Command("kldload", "-n", "vmm").Run()
-	//	handleError(err)
-	//
-	//	err = exec.Command("kldload", "-n", "nmdm").Run()
-	//	handleError(err)
+	//Only do if needed
+	err := exec.Command("kldload", "-n", "vmm").Run()
+	vm.LogError(err, "kldload vmm")
+
+	err = exec.Command("kldload", "-n", "nmdm").Run()
+	vm.LogError(err, "kldload nmdm")
 	//
 	//	//Tap 0 is sub optimal
 	//	exec.Command("ifconfig", "tap0", "create").Run()

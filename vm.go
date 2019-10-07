@@ -15,13 +15,17 @@ import (
 const disksLocation = "/storage/vm"
 const zfsPool string = "storage/vm"
 
-func crash(err error) {
-	handleError(err)
-}
-
-func handleError(err error) {
+// Crash if there is error
+func Crash(err error) {
 	if err != nil {
 		log.Panic(err)
+	}
+}
+
+// LogError if there is an error
+func LogError(err error, context string) {
+	if err != nil {
+		log.Printf("ERROR %s: %s", context, err)
 	}
 }
 
@@ -108,7 +112,12 @@ func (vm VM) Start(fullScreen bool, iso *string) {
 	//	cmd.Stdout = os.Stdout
 
 	err := cmd.Start()
-	handleError(err)
+	Crash(err)
+
+	//TODO localhost
+	vnvViewer := exec.Command("vncviewer", fmt.Sprintf("localhost:%d", vm.VNCPort()))
+	err = vnvViewer.Start()
+	Crash(err)
 
 }
 
@@ -154,11 +163,11 @@ func (vm VM) VNCPort() int {
 func (vm VM) Create() {
 
 	err := exec.Command("zfs", "create", vm.zfsDataset()).Run()
-	handleError(err)
+	Crash(err)
 
 	//TODO try non file based storage
 	err = exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
-	handleError(err)
+	Crash(err)
 
 }
 
@@ -171,7 +180,7 @@ func (vm VM) diskSlot() string {
 // CloneFrom creates new vm from snapshot of other vm
 func (vm VM) CloneFrom(fromSnapshot string) {
 	err := exec.Command("zfs", "clone", zfsPool+"/"+fromSnapshot, vm.zfsDataset()).Run()
-	handleError(err)
+	Crash(err)
 }
 
 // Snapshot takes snapshot a give vm
@@ -186,20 +195,20 @@ func (vm VM) Snapshot(name string) {
 
 	log.Printf("Creating snapshot with name %s", snapshotName)
 	err := exec.Command("zfs", "snap", snapshotName).Run()
-	handleError(err)
+	Crash(err)
 }
 
 // New returns new VM stract ready for usage
 func New(name string) VM {
 	entries, err := filepath.Glob("/dev/vmm/*")
-	crash(err)
+	Crash(err)
 	return VM{Name: name, index: len(entries)}
 }
 
 // List lists all vms and their status
 func List() {
 	output, err := exec.Command("zfs", "list", "-r", "-H", zfsPool).Output()
-	handleError(err)
+	Crash(err)
 	lines := strings.Split(string(output), "\n")
 
 	fmt.Println("Name\tRunning\tUsed\tRefer\tVNC Port")
