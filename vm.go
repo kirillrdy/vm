@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -43,12 +42,6 @@ func numberSlots(slots []string) []string {
 	return numberedSlots
 }
 
-func (vm VM) storeVNCPort(port int) {
-	config := vm.configuration()
-	config.VNCPort = port
-	vm.writeConfiguration(config)
-}
-
 func vnc(port int, fullScreen bool, shouldWait bool) string {
 	s := fmt.Sprintf("fbuf,tcp=0.0.0.0:%d", port)
 	if fullScreen {
@@ -71,11 +64,11 @@ func uEFIBoot(legacy bool) string {
 	return "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
 }
 
+// Start starts VM
+// TODO move iso into something like attach cdrom
 func (vm VM) Start(fullScreen bool, iso *string) {
 	numberOfCPUs := strconv.Itoa(runtime.NumCPU())
 	memory := "10G"
-
-	configuration := vm.configuration()
 
 	//TODO Because of hardcoded LPC 31, have limit to 30 slots
 	slots := []string{
@@ -83,7 +76,7 @@ func (vm VM) Start(fullScreen bool, iso *string) {
 		//"lpc",
 		networkDevice("tap0"),
 		vm.diskSlot(),
-		vnc(configuration.VNCPort, fullScreen, false),
+		vnc(vm.VNCPort(), fullScreen, false),
 		"xhci,tablet",
 	}
 
@@ -127,11 +120,6 @@ func (vm VM) Stop() {
 	}
 }
 
-// Configuration will contain persisted on disk configuratior
-type Configuration struct {
-	VNCPort int
-}
-
 // VM is vm
 type VM struct {
 	Name       string
@@ -157,6 +145,11 @@ func (vm VM) zfsDataset() string {
 	return zfsPool + "/" + vm.Name
 }
 
+//VNCPort VNC port
+func (vm VM) VNCPort() int {
+	return 5900 + vm.index
+}
+
 // Create creates vm and all related things such as zfs datasets etc
 func (vm VM) Create() {
 
@@ -167,31 +160,6 @@ func (vm VM) Create() {
 	err = exec.Command("truncate", "-s", "100G", vm.diskPath()).Run()
 	handleError(err)
 
-	// Or is better to have this dynamic ? Maybe better dynamic
-	configuration := Configuration{VNCPort: nextAvailibleVNCPort()}
-	vm.writeConfiguration(configuration)
-}
-
-func (vm VM) configuration() Configuration {
-	file, err := os.Open(vm.configurationPath())
-	handleError(err)
-	decoder := json.NewDecoder(file)
-	var configuration Configuration
-	err = decoder.Decode(&configuration)
-	handleError(err)
-	return configuration
-}
-
-func (vm VM) writeConfiguration(configuration Configuration) {
-	file, err := os.Create(vm.configurationPath())
-	handleError(err)
-	defer func() {
-		err := file.Close()
-		handleError(err)
-	}()
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(&configuration)
-	handleError(err)
 }
 
 func (vm VM) diskSlot() string {
@@ -200,11 +168,13 @@ func (vm VM) diskSlot() string {
 	return "ahci-hd," + vm.diskPath()
 }
 
+// CloneFrom creates new vm from snapshot of other vm
 func (vm VM) CloneFrom(fromSnapshot string) {
 	err := exec.Command("zfs", "clone", zfsPool+"/"+fromSnapshot, vm.zfsDataset()).Run()
 	handleError(err)
 }
 
+// Snapshot takes snapshot a give vm
 func (vm VM) Snapshot(name string) {
 	now := time.Now()
 	snapshotTime := fmt.Sprintf("%d%02d%02d-%02d%02d%02d", now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
@@ -243,6 +213,7 @@ func New(name string) VM {
 	return VM{Name: name, index: 0}
 }
 
+// List lists all vms and their status
 func List() {
 	output, err := exec.Command("zfs", "list", "-r", "-H", zfsPool).Output()
 	handleError(err)
@@ -258,7 +229,7 @@ func List() {
 		referenced := strings.Split(line, "\t")[3]
 		vmName := strings.Replace(datasetName, zfsPool+"/", "", 1)
 		vm := VM{Name: vmName, Referenced: referenced, Used: used}
-		fmt.Printf("%s\t%t\t%s\t%s\t%d\n", vmName, vm.isRunning(), vm.Used, vm.Referenced, vm.configuration().VNCPort)
+		fmt.Printf("%s\t%t\t%s\t%s\t%d\n", vmName, vm.isRunning(), vm.Used, vm.Referenced, vm.VNCPort())
 	}
 
 }
