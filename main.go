@@ -17,6 +17,10 @@ import (
 const disksLocation = "/storage/vm"
 const zfsPool string = "storage/vm"
 
+func crash(err error) {
+	handleError(err)
+}
+
 func handleError(err error) {
 	if err != nil {
 		log.Panic(err)
@@ -69,19 +73,18 @@ func uEFIBoot(legacy bool) string {
 }
 
 func (vm VM) start(fullScreen bool, iso *string) {
-	//TODO maybe give all cpus ?
 	numberOfCPUs := strconv.Itoa(runtime.NumCPU())
 	memory := "10G"
 
-	vncPort := nextAvailibleVNCPort()
-	vm.storeVNCPort(vncPort)
+	configuration := vm.configuration()
 
+	//TODO Because of hardcoded LPC 31, have limit to 30 slots
 	slots := []string{
 		"hostbridge",
-		"lpc",
+		//"lpc",
 		networkDevice("tap0"),
 		vm.diskSlot(),
-		vnc(vncPort, fullScreen, false),
+		vnc(configuration.VNCPort, fullScreen, false),
 		"xhci,tablet",
 	}
 
@@ -90,6 +93,8 @@ func (vm VM) start(fullScreen bool, iso *string) {
 	}
 
 	args := append(numberSlots(slots), []string{
+		"-s",
+		"31:0,lpc",
 		"-AHP",
 		"-c",
 		numberOfCPUs,
@@ -102,11 +107,13 @@ func (vm VM) start(fullScreen bool, iso *string) {
 		vm.Name,
 	}...)
 
+	log.Print(args)
+
 	cmd := exec.Command("bhyve", args...)
 
-	//cmd.Stdin = os.Stdin
-	//cmd.Stderr = os.Stderr
-	//cmd.Stdout = os.Stdout
+	//	cmd.Stdin = os.Stdin
+	//	cmd.Stderr = os.Stderr
+	//	cmd.Stdout = os.Stdout
 
 	err := cmd.Start()
 	handleError(err)
@@ -114,8 +121,10 @@ func (vm VM) start(fullScreen bool, iso *string) {
 }
 
 func (vm VM) stop() {
-	err := exec.Command("bhyvectl", "--vm="+vm.Name, "--destroy").Run()
-	handleError(err)
+	out, err := exec.Command("bhyvectl", "--vm="+vm.Name, "--destroy").Output()
+	if err != nil {
+		log.Print(string(out))
+	}
 }
 
 // Configuration will contain persisted on disk configuratior
@@ -211,10 +220,11 @@ func nextAvailibleVNCPort() int {
 	start := 5900
 
 	for i := start; i < start+100; i++ {
-		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", i))
+		listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", i))
 
 		if err == nil {
-			listener.Close()
+			err = listener.Close()
+			crash(err)
 			return i
 		}
 		log.Print(err)
